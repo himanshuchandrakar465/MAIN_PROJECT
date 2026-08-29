@@ -16,69 +16,141 @@ items = list(image_paths.iterdir())
 number_of_image = 10
 
 
-def image_embaddings(
-    image_path=image_path,
-):  # -------> this function canvert images to numbers if you give the path
-
-    image = cv2.imread(image_path)
-
-    # print(type(image))
-    # print(image)
-    return image
+def image_embaddings(image_path):
+    return cv2.imread(str(image_path))
 
 
-def show(
-    image,
-):  # --------> this function show the image if you give the embaddings / numbers of the image
+def show(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
     plt.imshow(image)
+    plt.axis("off")
     plt.show()
 
 
-def shape_of_image(
-    image_path,
-):  # --------> this function give the shape of the matrix / numbers 2d list
-
-    image_shape = image_embaddings(image_path).shape
-
-    return image_shape
+def shape_of_image(image):
+    return image.shape
 
 
-def random_value(
-    image_path,
-):  # ------>this function give the the random value between the image coodinates if you give the image path
-    x = shape_of_image(image_path)[0]
-    y = shape_of_image(image_path)[1]
-    a = np.random.randint(0, x + 1)
-    b = np.random.randint(0, y + 1)
-
-    return a, b
-
-
-def crop_image(
-    image_path,
-):  # ------> this function give the croped image if you give the image path
-    image = image_embaddings(image_path)
-
+def random_value(image):
     h, w = image.shape[:2]
-    width, height = random_value(image_path)
 
-    x = (w - width) // 2
-    y = (h - height) // 2
+    height = np.random.randint(1, h + 1)
+    width = np.random.randint(1, w + 1)
 
-    return image[y : y + height, x : x + width]
+    return width, height
 
 
-def image_genrater(image_link):  # ------> this function genrate images from one images
-    list_of_different_images_from_one_images = []
-    for i in range(0, number_of_image):
-        list_of_different_images_from_one_images.append(crop_image(image_link))
-    return list_of_different_images_from_one_images
+def crop_image(image):
+    h, w = image.shape[:2]
+
+    crop_height = np.random.randint(64, h + 1)
+    crop_width = np.random.randint(64, w + 1)
+
+    x = np.random.randint(0, w - crop_width + 1)
+    y = np.random.randint(0, h - crop_height + 1)
+
+    return image[y : y + crop_height, x : x + crop_width]
+
+
+def image_genrater(image):
+    return [crop_image(image) for _ in range(number_of_image)]
+
+
+def genrate_more_rotated_image(image):
+    final_image_list = []
+
+    for img in image_genrater(image):
+        final_image_list.append(cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE))
+
+        final_image_list.append(cv2.rotate(img, cv2.ROTATE_180))
+
+        final_image_list.append(cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE))
+
+    return final_image_list
+
+
+def saving_the_genrated_images(image_link):
+
+    x_folder = Path(
+        r"C:\Users\ASUS\Desktop\A_GOOD_PROJECT\image_resulation\genrated_images_x"
+    )
+
+    y_folder = Path(
+        r"C:\Users\ASUS\Desktop\A_GOOD_PROJECT\image_resulation\genrated_images_y"
+    )
+
+    x_folder.mkdir(parents=True, exist_ok=True)
+    y_folder.mkdir(parents=True, exist_ok=True)
+
+    image = image_embaddings(image_link)
+
+    generated_images = genrate_more_rotated_image(image)
+
+    existing_files = list(x_folder.glob("*.jpg"))
+
+    start_number = len(existing_files)
+
+    for j, generated_image in enumerate(generated_images):
+        number = start_number + j
+
+        filename = f"{number}.jpg"
+
+        cv2.imwrite(
+            str(x_folder / filename),
+            generated_image,
+        )
+
+        cv2.imwrite(
+            str(y_folder / filename),
+            generated_image,
+        )
+
+
+def delete_images():
+    folders = [
+        Path(
+            r"C:\Users\ASUS\Desktop\A_GOOD_PROJECT\image_resulation\genrated_images_x"
+        ),
+        Path(
+            r"C:\Users\ASUS\Desktop\A_GOOD_PROJECT\image_resulation\genrated_images_y"
+        ),
+    ]
+
+    for folder in folders:
+        for file in folder.iterdir():
+            if file.is_file():
+                file.unlink()
+
+
+def make_xtrain_rough(xtrain_path):
+
+    xtrain_path = Path(xtrain_path)
+
+    for image_path in xtrain_path.iterdir():
+        if image_path.is_file():
+            image = cv2.imread(str(image_path))
+
+            if image is None:
+                continue
+
+            # Make image rough
+            rough_image = cv2.GaussianBlur(image, (5, 5), 0)
+
+            # Add noise
+            noise = np.random.normal(0, 10, image.shape).astype(np.uint8)
+
+            rough_image = cv2.add(rough_image, noise)
+
+            # Same path + same filename
+            cv2.imwrite(str(image_path), rough_image)
 
 
 if __name__ == "__main__":
-    # show(image=image_embaddings()) #-----> this is how you can see the image
-    for i in items[0:2]:
-        for j in image_genrater(i):
-            show(j)
+    delete_images()
+
+    for image_path in items[:3]:
+        saving_the_genrated_images(image_path)
+
+    make_xtrain_rough(
+        r"C:\Users\ASUS\Desktop\A_GOOD_PROJECT\image_resulation\genrated_images_x"
+    )
