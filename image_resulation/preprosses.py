@@ -122,27 +122,113 @@ def delete_images():
                 file.unlink()
 
 
-def make_xtrain_rough(xtrain_path):
-
+def make_xtrain_rough(
+    xtrain_path,
+    noise_strength=3,
+    blur_strength=5,
+    pixelation=10,
+    tint_rgb=(150, 115, 70),
+    tint_strength=0.18,
+    scratch_strength=0.25,
+    stain_strength=0.20,
+    mark_count=15,
+):
     xtrain_path = Path(xtrain_path)
 
     for image_path in xtrain_path.iterdir():
-        if image_path.is_file():
-            image = cv2.imread(str(image_path))
+        if not image_path.is_file():
+            continue
 
-            if image is None:
-                continue
+        image = cv2.imread(str(image_path))
 
-            # Make image rough
-            rough_image = cv2.GaussianBlur(image, (5, 5), 0)
+        if image is None:
+            continue
 
-            # Add noise
-            noise = np.random.normal(0, 10, image.shape).astype(np.uint8)
+        h, w = image.shape[:2]
 
-            rough_image = cv2.add(rough_image, noise)
+        scale = max(1, pixelation)
 
-            # Same path + same filename
-            cv2.imwrite(str(image_path), rough_image)
+        small_w = max(1, w // scale)
+        small_h = max(1, h // scale)
+
+        small = cv2.resize(image, (small_w, small_h), interpolation=cv2.INTER_AREA)
+
+        image = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+
+        blur = max(1, blur_strength)
+
+        if blur % 2 == 0:
+            blur += 1
+
+        image = cv2.GaussianBlur(image, (blur, blur), 0)
+
+        noise = np.random.normal(0, noise_strength, image.shape)
+
+        image = np.clip(image.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+
+        r, g, b = tint_rgb
+
+        tint_color = np.array([b, g, r], dtype=np.uint8)
+
+        tint_image = np.full_like(image, tint_color)
+
+        image = cv2.addWeighted(image, 1 - tint_strength, tint_image, tint_strength, 0)
+
+        overlay = image.copy()
+
+        for _ in range(mark_count):
+            x1 = np.random.randint(0, w)
+            y1 = np.random.randint(0, h)
+
+            mark_w = np.random.randint(2, max(3, w // 20))
+
+            mark_h = np.random.randint(2, max(3, h // 20))
+
+            x2 = min(w, x1 + mark_w)
+            y2 = min(h, y1 + mark_h)
+
+            # Random dark or light mark
+            if np.random.random() < 0.6:
+                value = np.random.randint(40, 120)
+
+            else:
+                value = np.random.randint(180, 240)
+
+            cv2.rectangle(overlay, (x1, y1), (x2, y2), (value, value, value), -1)
+
+        image = cv2.addWeighted(image, 1 - stain_strength, overlay, stain_strength, 0)
+
+        if np.random.random() < scratch_strength:
+            scratch_layer = image.copy()
+
+            number_of_scratches = np.random.randint(1, 6)
+
+            for _ in range(number_of_scratches):
+                x = np.random.randint(0, w)
+
+                y1 = np.random.randint(0, h)
+
+                y2 = np.random.randint(y1, h)
+
+                scratch_color = np.random.randint(80, 220)
+
+                cv2.line(
+                    scratch_layer,
+                    (x, y1),
+                    (x + np.random.randint(-3, 4), y2),
+                    (scratch_color, scratch_color, scratch_color),
+                    np.random.randint(1, 3),
+                )
+
+            image = cv2.addWeighted(image, 0.85, scratch_layer, 0.15, 0)
+
+        quality = np.random.randint(35, 75)
+
+        _, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, quality])
+
+        image = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+
+        cv2.imwrite(str(image_path), image)
 
 
 if __name__ == "__main__":
