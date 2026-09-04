@@ -1,12 +1,11 @@
-import matplotlib.pyplot as plt
 from pathlib import Path
+
 import cv2
-from preprosses import image_embaddings
-from preprosses import show
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras.layers import Input, Conv2D, UpSampling2D
+from preprosses import image_embaddings
+from tensorflow.keras.layers import Conv2D, Input, UpSampling2D
 from tensorflow.keras.models import Model
 
 image_paths_x = Path(
@@ -25,7 +24,7 @@ def show_two_images(image1, image2):
     image1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
     image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    _, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     axes[0].imshow(image1)
     axes[0].set_title("Image 1")
@@ -125,20 +124,13 @@ def get_batches(items_x, items_y, batch_size=8):
         yield (np.array(batch_x, dtype=np.float32), np.array(batch_y, dtype=np.float32))
 
 
-import tensorflow as tf
-
 from tensorflow.keras.layers import (
-    Input,
-    Conv2D,
-    MaxPooling2D,
-    UpSampling2D,
-    Concatenate,
+    Activation,
     Add,
     BatchNormalization,
-    Activation,
+    Concatenate,
+    MaxPooling2D,
 )
-
-from tensorflow.keras.models import Model
 
 
 def residual_block(x, filters):
