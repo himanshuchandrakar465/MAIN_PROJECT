@@ -1,9 +1,8 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import cv2
 from pathlib import Path
 
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 
 image_paths = Path(
     r"C:\Users\ASUS\.cache\kagglehub\datasets\joe1995\div2k-dataset\versions\1\DIV2K_train_HR\DIV2K_train_HR"
@@ -125,8 +124,8 @@ def delete_images():
 def make_xtrain_rough(
     xtrain_path,
     noise_strength=3,
-    blur_strength=5,
-    pixelation=10,
+    blur_strength=6,
+    pixelation=12,
     tint_rgb=(150, 115, 70),
     tint_strength=0.18,
     scratch_strength=0.25,
@@ -234,7 +233,7 @@ def make_xtrain_rough(
 if __name__ == "__main__":
     delete_images()
 
-    for image_path in items[:3]:
+    for image_path in items[:1]:
         saving_the_genrated_images(image_path)
 
     make_xtrain_rough(
